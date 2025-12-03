@@ -143,7 +143,7 @@ scash-manager/
     ‚îÇ   ‚îî‚îÄ‚îÄ app.js
     ‚îî‚îÄ‚îÄ img/
         ‚îî‚îÄ‚îÄ logo.svg
-Ì†ΩÌª†Ô∏è Build and Run
+# Build and Run
 Build Docker Image
 First, clone the repository and build the Docker image:
 
@@ -164,7 +164,7 @@ docker run -d \
   -p 8080:8080 \
   -v /opt/scash-manager-data:/data \
   scash-manager:latest
-Ì†ºÌºê Access and Initial Setup
+# Access and Initial Setup
 Access
 Open your browser and navigate to:
 
@@ -191,7 +191,7 @@ If the Miner exits abnormally (and was not manually stopped via the web interfac
 
 If the Miner is stopped manually via the Web interface (by clicking [Stop Miner]), the Miner sets _manual_stop_flag = True. The Watchdog detects this flag and will not automatically restart the process.
 
-Ì†æÌ¥ù Contribution
+# Contribution
 We welcome your contributions through Issues or Pull Requests (PRs):
 
 Suggestions for new features.
@@ -202,7 +202,7 @@ Pool compatibility/new Miner support.
 
 UI style optimization.
 
-Ì†ºÌæÅ Donation / Tip
+# Donation / Tip
 If this project has been helpful to you, please consider making a SCASH donation to support development:
 
 SCASH Address: scash1qdvdy4ea0v6dpw6kxnxgffsr2h3tsgf0f55z589

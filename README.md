@@ -206,4 +206,4 @@ UI style optimization.
 If this project has been helpful to you, please consider making a SCASH donation to support development:
 
 SCASH Address: scash1qdvdy4ea0v6dpw6kxnxgffsr2h3tsgf0f55z589
-
+ 

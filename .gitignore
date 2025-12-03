@@ -1,0 +1,29 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+*.log
+*.sqlite3
+
+# venv
+.venv/
+env/
+venv/
+
+# IDE / 编辑器
+.vscode/
+.idea/
+*.swp
+*.swo
+.DS_Store
+
+# Docker / 本地数据
+/data/
+*.pid
+
+# 其他
+*.tgz
+*.tar.gz
+dist/
+build/

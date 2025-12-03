@@ -1,0 +1,173 @@
+<!-- templates/index.html -->
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8" />
+  <title>SCASH Manager 控制台</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <link rel="icon" type="image/x-icon" href="/favicon.ico">
+  <link rel="icon" type="image/png" sizes="32x32" href="/icon-32x32.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/icon-16x16.png">
+  <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
+  <link rel="manifest" href="/site.webmanifest">
+  <meta name="theme-color" content="#9333EA">
+
+  <!-- 全局样式 -->
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+
+  <!-- ApexCharts（算力折线图） -->
+  <script src="https://cdn.jsdelivr.net/npm/apexcharts"></script>
+</head>
+<body>
+  <div class="container">
+    <!-- logo -->
+<h1>
+  <span class="logo">
+    <img src="{{ url_for('static', filename='img/logo.svg') }}"
+         alt="SCASH Manager"
+         style="width:22px;height:22px;" />
+  </span>
+  <span>SCASH Manager</span>
+</h1>
+
+    <div class="subtitle">
+      轻量级 SCASH 挖矿管家 · Web 控制台 + Watchdog · Docker 开箱即用
+    </div>
+    <div class="top-actions">
+      <button id="btn-reset" class="btn-ghost small">
+        重新运行向导
+      </button>
+    </div>
+
+
+    <!-- 首次配置向导 -->
+    <div id="setup-section" class="section" style="display:none;">
+      <h2>首次配置向导</h2>
+      <p class="hint">
+        第一次使用，请填写你的 SCASH 钱包与挖矿参数。保存后系统会自动写入配置并启动 Miner。
+      </p>
+
+      <label>矿工类型</label>
+      <select id="setup-impl">
+        <option value="cpuminer">cpuminer-scash v3.0.9（推荐，简单稳定）</option>
+        <option value="srbminer">SRBMiner-MULTI v3.0.5（高级，更多参数）</option>
+      </select>
+
+      <label>SCASH 钱包地址</label>
+      <input id="setup-wallet" placeholder="scash1q..." />
+
+      <div class="grid">
+        <div>
+          <label>矿池</label>
+          <select id="setup-pool">
+            <option value="pool.scash.pro:8888">pool.scash.pro:8888</option>
+            <option value="custom">自定义矿池...</option>
+          </select>
+          <input id="setup-pool-custom"
+                 placeholder="自定义矿池，例如 pool.scash.pro:8888 或 8.217.27.122:7019"
+                 class="mt6 hidden" />
+        </div>
+        <div>
+          <label>线程数（留空则自动使用 CPU 核数-1）</label>
+          <input id="setup-threads" type="number" min="1" />
+        </div>
+      </div>
+
+      <label class="mt10">矿工可执行文件路径（容器内，可留空使用默认）</label>
+      <input id="setup-bin" placeholder="/usr/local/bin/minerd 或 /opt/SRBMiner-Multi/SRBMiner-MULTI" />
+
+      <div class="controls">
+        <button id="btn-setup-save" class="btn-primary">保存配置并启动 Miner</button>
+        <span id="setup-msg" class="msg"></span>
+      </div>
+    </div>
+
+    <!-- 控制台 -->
+    <div id="dashboard-section" class="section" style="display:none;">
+      <div class="header-row">
+        <div>
+          <h2>运行状态</h2>
+          <div id="status-badge" class="badge off">
+            <span id="status-text">状态未知</span>
+          </div>
+          <div class="sub-info">
+            当前矿工：<span id="impl-text">-</span>
+          </div>
+        </div>
+        <div class="sub-info right">
+          钱包：<span id="wallet">-</span><br/>
+          当前矿池：<span id="pool-url">-</span><br/>
+          线程数：<span id="threads">-</span>
+        </div>
+      </div>
+
+      <div class="grid mt12">
+        <div class="section inner">
+          <h2 class="small">Miner</h2>
+          <div class="sub-info">
+            程序路径：<span id="bin-path">-</span><br/>
+            算法：<span id="algo">-</span>
+          </div>
+        </div>
+        <div class="section inner">
+          <h2 class="small">Watchdog</h2>
+          <div class="sub-info">
+            重启次数：<span id="restart-count">0</span><br/>
+            重启间隔：<span id="restart-delay">-</span> 秒
+          </div>
+        </div>
+      </div>
+
+      <!-- 算力信息 -->
+      <div class="section inner mt12">
+        <h2 class="small">算力信息</h2>
+        <div class="hash-metrics">
+          <span>当前算力：<span id="hashrate">未知</span></span>
+          <span>平均算力：<span id="hashrate-avg">-</span></span>
+          <span>平滑算力：<span id="hashrate-ewma">-</span></span>
+          <span>最后提交：<span id="last-submit">-</span></span>
+          <span>折算：<span id="hashrate-hs">-</span> H/s</span>
+        </div>
+      </div>
+
+      <!-- 算力曲线 -->
+      <div class="section inner mt12">
+        <div class="section-header">
+          <h2 class="small">算力曲线（最近 24 小时，每约 3 分钟一采样）</h2>
+        </div>
+        <div id="hashrate-chart" style="height:260px;"></div>
+      </div>
+
+      <!-- 打赏 -->
+      <div class="section inner mt12">
+        <h2 class="small">打赏作者（SCASH）</h2>
+        <div class="sub-info">
+          如果这个面板对你有帮助，可以考虑打赏一点 SCASH 支持开发：<br/>
+          <code class="addr">scash1qdvdy4ea0v6dpw6kxnxgffsr2h3tsgf0f55z589</code>
+        </div>
+      </div>
+
+
+      <!-- 控制按钮 + 日志 -->
+      <div class="controls mt12">
+        <button id="btn-start" class="btn-primary">启动 Miner</button>
+        <button id="btn-stop" class="btn-danger">停止 Miner</button>
+        <button id="btn-refresh" class="btn-ghost">刷新状态 & 日志</button>
+        <span id="dash-msg" class="msg"></span>
+      </div>
+
+      <div class="log" id="log-box">
+        状态日志将在这里显示...
+      </div>
+    </div>
+
+    <div class="footer">
+      SCASH Manager · Docker Edition · 助力scash发展
+    </div>
+    
+  </div>
+
+  <!-- 主前端逻辑 -->
+  <script src="{{ url_for('static', filename='js/app.js') }}"></script>
+</body>
+</html>

@@ -1,0 +1,15 @@
+<svg width="24" height="24" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+  <circle cx="12" cy="12" r="11" fill="#9333EA" />
+  <text
+    x="12"
+    y="15.2"
+    text-anchor="middle"
+    font-size="14"
+    font-weight="700"
+    fill="#FFFFFF"
+    font-family="system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif"
+    transform="rotate(-12 12 12)"
+  >
+    S
+  </text>
+</svg>

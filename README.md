@@ -117,5 +117,93 @@ Watchdog 检测到后 不会再自动重启
 scash1qdvdy4ea0v6dpw6kxnxgffsr2h3tsgf0f55z589
 
 
+scash-manager
 
+Project Structure
+
+scash-manager/
+├── Dockerfile
+├── requirements.txt
+├── README.md
+├── LICENSE
+├── scash_manager/
+│   ├── __init__.py
+│   ├── config.py
+│   ├── miner.py
+│   ├── miner_downloader.py
+│   ├── watchdog.py
+│   ├── webapp.py
+│   └── utils.py
+├── templates/
+│   └── index.html
+└── static/
+    ├── css/
+    │   └── style.css
+    ├── js/
+    │   └── app.js
+    └── img/
+        └── logo.svg
+������️ Build and Run
+Build Docker Image
+First, clone the repository and build the Docker image:
+
+Bash
+
+git clone https://github.com/syl19880203/scash-manager.git
+cd scash-manager
+docker build -t scash-manager:latest .
+Start the Container
+Create a local data directory and run the container, mapping port 8080 and mounting the data volume:
+
+Bash
+
+mkdir -p /opt/scash-manager-data
+
+docker run -d \
+  --name scash-manager \
+  -p 8080:8080 \
+  -v /opt/scash-manager-data:/data \
+  scash-manager:latest
+������ Access and Initial Setup
+Access
+Open your browser and navigate to:
+
+http://Server_IP:8080
+Configuration Wizard
+Upon first access, you will be guided through a configuration wizard. Please fill in the following details:
+
+SCASH Wallet Address: e.g., scash1...
+
+Mining Pool: e.g., pool.scash.pro:8888
+
+Number of Threads: Leave blank to automatically use CPU Cores - 1.
+
+Miner Executable Path: Can be left blank (Default paths are:
+
+cpuminer: /usr/local/bin/minerd
+
+SRBMiner: /opt/SRBMiner-Multi/SRBMiner-MULTI)
+
+⚙️ Watchdog Explanation
+The Miner process is managed by the Miner class, and the Watchdog periodically checks the process health.
+
+If the Miner exits abnormally (and was not manually stopped via the web interface), the Watchdog will automatically restart it after a delay.
+
+If the Miner is stopped manually via the Web interface (by clicking [Stop Miner]), the Miner sets _manual_stop_flag = True. The Watchdog detects this flag and will not automatically restart the process.
+
+������ Contribution
+We welcome your contributions through Issues or Pull Requests (PRs):
+
+Suggestions for new features.
+
+BUG fixes.
+
+Pool compatibility/new Miner support.
+
+UI style optimization.
+
+������ Donation / Tip
+If this project has been helpful to you, please consider making a SCASH donation to support development:
+
+SCASH Address: scash1qdvdy4ea0v6dpw6kxnxgffsr2h3tsgf0f55z589
 

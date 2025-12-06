@@ -3,6 +3,8 @@
 
 轻量级 **SCASH 挖矿管家**：一键 Docker 部署，集成 Web 控制台 + Watchdog，看门狗自动拉起 Miner，前端支持现代 Web3 / 区块链风格界面。
 <img width="1802" height="1158" alt="image" src="https://github.com/user-attachments/assets/9f9a8b0e-8fd7-4ddf-8aa3-583538b0eca1" />
+<img width="2880" height="1462" alt="image" src="https://github.com/user-attachments/assets/95e0e286-783b-4ebb-aeae-681fff6000c4" />
+
 
 > 当前支持：`cpuminer-scash` 与 `SRBMiner-MULTI`（RandomSCASH / RandomX-SCASH）。
 找我可以在https://t.me/+vsa1TnPuAaphM2U1

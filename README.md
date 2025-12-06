@@ -5,7 +5,7 @@
 <img width="1802" height="1158" alt="image" src="https://github.com/user-attachments/assets/9f9a8b0e-8fd7-4ddf-8aa3-583538b0eca1" />
 
 > 当前支持：`cpuminer-scash` 与 `SRBMiner-MULTI`（RandomSCASH / RandomX-SCASH）。
-
+找我可以在https://t.me/+vsa1TnPuAaphM2U1
 ---
 
 ## 功能特性

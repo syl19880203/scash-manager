@@ -12,7 +12,7 @@ class Miner:
     Miner 管理：
 
     - 负责启动 / 停止真实挖矿进程
-    - cpuminer / SRBMiner 两类都兼容
+    - cpuminer / SRBMiner / XMRig 三类都兼容
     - stdout 实时回调 push_log
     """
 
@@ -47,24 +47,46 @@ class Miner:
         pool = mcfg.get("url")
         threads = mcfg.get("threads", 1)
         bin_path = mcfg.get("bin_path")
+        algo = (mcfg.get("algorithm") or "randomx").strip()  # <--- 关键：使用配置里的算法
 
         if not bin_path:
             raise RuntimeError("未配置 miner 可执行文件路径 bin_path")
 
+        # ---- cpuminer ----
         if impl == "cpuminer":
             # cpuminer 直接用 stratum+tcp://...
+            # SCASH / XMR / ZEPH / WOW 这些 RandomX 系就用 randomx；
+            # 如果将来你给它填别的 algo，这里也会跟着走。
             return [
                 bin_path,
-                "-a", "randomx",
+                "-a", algo,
                 "-o", pool,
                 "-u", wallet,
                 "-p", "x",
                 "-t", str(threads),
             ]
 
+        # ---- XMRig ----
+        elif impl == "xmrig":
+            # XMRig：
+            # - 普通 RandomX：algo = randomx
+            # - WOW：algo = rx/wow
+            # - DERO：algo = astrobwt
+            # 这些都是前面 webapp 里根据币种算好的。
+            return [
+                bin_path,
+                "-a", algo,
+                "-o", pool,
+                "-u", wallet,
+                "-p", "x",
+                "-t", str(threads),
+            ]
+
+        # ---- SRBMiner ----
         elif impl == "srbminer":
-            # SRBMiner 使用 host:port
+            # SRBMiner 使用 host:port（不带 stratum+tcp:// 前缀）
             hostport = pool.replace("stratum+tcp://", "").replace("stratum://", "")
+            # 这里我们还是直接写死 randomscash，跟 webapp 里保持一致
             return [
                 bin_path,
                 "--algorithm", "randomscash",
@@ -76,6 +98,7 @@ class Miner:
 
         else:
             raise RuntimeError(f"未知 miner impl: {impl}")
+
 
     # ======================================================================
     # stdout 实时读取
@@ -155,7 +178,7 @@ class Miner:
             try:
                 # 拿到进程组 ID
                 pgid = os.getpgid(pid)
-                self._log(f"向进程组 {pgid} 发送 SIGTERM（杀 SRBMiner 所有子进程）")
+                self._log(f"向进程组 {pgid} 发送 SIGTERM（杀 Miner 所有子进程）")
                 os.killpg(pgid, signal.SIGTERM)
             except Exception as e:
                 self._log(f"SIGTERM 进程组失败：{e}，改用 terminate()")

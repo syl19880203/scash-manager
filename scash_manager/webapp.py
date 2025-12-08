@@ -11,7 +11,50 @@ from flask import Flask, jsonify, request, render_template
 from .config import load_config, save_config, setup_logging
 from .miner import Miner
 from .watchdog import Watchdog
-from .miner_downloader import ensure_cpuminer_binary, ensure_srbminer
+from .miner_downloader import ensure_cpuminer_binary, ensure_srbminer, ensure_xmrig_binary  # <-- 保留
+
+# ===== 币种预设：默认算法 + 示例矿池（可用） =====
+
+COIN_PRESETS = {
+    "scash": {
+        "label": "SCASH",
+        # 推荐：cpuminer-scash + pool.scash.pro
+        "default_pool": "pool.scash.pro:8888",
+        # cpuminer / xmrig 都跑 RandomX，SCASH 实际是 RandomX 的变种，
+        # cpuminer 用 randomx 即可。
+        "algo_cpuminer": "randomx",
+        "algo_xmrig": "randomx",  # 仅当你自己找兼容 SCASH 的 XMRig 池子
+    },
+    "xmr": {
+        "label": "Monero (XMR)",
+        # SupportXMR 官方矿池示例
+        "default_pool": "pool.supportxmr.com:3333",  # stratum+tcp:// 前缀由我们自动补
+        "algo_cpuminer": "randomx",
+        "algo_xmrig": "randomx",  # XMRig 内部会协商 rx/0
+    },
+    "dero": {
+        "label": "DERO",
+        # HeroMiners DERO AstroBWT 矿池示例（AstroBWT）
+        "default_pool": "us.dero.herominers.com:10120",
+        "algo_cpuminer": None,       # cpuminer 不跑 dero
+        "algo_xmrig": "astrobwt",    # 关键：Dero 用 AstroBWT
+    },
+    "wow": {
+        "label": "Wownero (WOW)",
+        # HeroMiners WOW RandomX 矿池示例
+        "default_pool": "wownero.herominers.com:10661",
+        "algo_cpuminer": "randomx",  # 一般建议 XMRig，这里仍然标 randomx
+        "algo_xmrig": "rx/wow",      # XMRig 支持 rx/wow
+    },
+    "zeph": {
+        "label": "Zephyr (ZEPH)",
+        # Kryptex Zeph RandomX 矿池示例
+        "default_pool": "zeph.kryptex.network:7030",
+        "algo_cpuminer": "randomx",
+        "algo_xmrig": "randomx",     # Zeph 也是 RandomX 变种，XMRig 用 randomx 即可
+    },
+}
+
 
 
 def _strip_stratum_prefix(pool_url: str) -> str:
@@ -29,7 +72,7 @@ def _strip_stratum_prefix(pool_url: str) -> str:
 
 def _normalize_pool_for_cpuminer(pool_url: str) -> str:
     """
-    cpuminer 需要 stratum+tcp:// 前缀。
+    cpuminer / XMRig 需要 stratum+tcp:// 前缀。
     - 如果用户已经写了 stratum+tcp:// / stratum+ssl:// / stratum://：原样使用
     - 如果只写 host:port：自动补成 stratum+tcp://host:port
     """
@@ -85,8 +128,6 @@ def push_log(raw_msg: str):
             if not line:
                 continue
 
-            
-
             if TS_PREFIX_RE.match(line):
                 entry = line
             else:
@@ -95,7 +136,6 @@ def push_log(raw_msg: str):
 
             logging.info(entry)
             log_buffer.append(entry)
-
 
 
 # ===== 从日志里解析算力，用于前端展示 =====
@@ -243,12 +283,18 @@ app = Flask(
 
 # 初始化全局状态
 _cfg = load_config(allow_missing=True)
+if _cfg is None:
+    _cfg = {}
 setup_logging(_cfg or {})
 logging.info("SCASH Manager WebApp 启动中...")
 push_log("SCASH Manager Web 控制台已启动。")
 
 miner_cfg = _cfg.get("miner", {}) or {}
 _cfg["miner"] = miner_cfg  # 确保存在
+
+# 默认币种，如果配置里没写就视为 scash
+if "coin" not in _cfg:
+    _cfg["coin"] = "scash"
 
 _miner: Miner | None = None
 _watchdog: Watchdog | None = None
@@ -314,6 +360,7 @@ def api_status():
             "ok": True,
             "needs_setup": needs_setup,
             "running": running,
+            "coin": _cfg.get("coin", "scash"),  # <-- 返回币种给前端
             "wallet": _cfg.get("wallet"),
             "pool_url": mcfg.get("url"),
             "threads": mcfg.get("threads"),
@@ -360,17 +407,18 @@ def api_logs():
 @app.post("/api/setup")
 def api_setup():
     """
-    body: {impl, wallet, pool_url, bin_path, threads?}
+    body: {coin, impl, wallet, pool_url, bin_path, threads?}
 
     统一流程：
     1. 更新并保存配置
-    2. 下载 / 校验 miner 二进制（cpuminer / SRBMiner）
+    2. 下载 / 校验 miner 二进制（cpuminer / SRBMiner / XMRig）
     3. 成功后重建 Miner / Watchdog 并启动 Miner
     """
     global _cfg, _miner, _watchdog
 
     try:
         data = request.get_json(force=True) or {}
+        coin = (data.get("coin") or "scash").strip().lower()  # 新增：币种
         impl = (data.get("impl") or "cpuminer").strip()
         wallet = (data.get("wallet") or "").strip()
         pool_url_raw = (data.get("pool_url") or "").strip()
@@ -382,6 +430,7 @@ def api_setup():
         if not pool_url_raw:
             return jsonify({"ok": False, "error": "矿池地址不能为空"}), 400
 
+        # 基本线程检查
         if threads is None:
             auto_threads = max(1, (os.cpu_count() or 2) - 1)
             threads = auto_threads
@@ -393,14 +442,38 @@ def api_setup():
         except Exception:
             return jsonify({"ok": False, "error": "线程数必须是正整数"}), 400
 
+        # 一些安全限制 / 防呆：
+        # 1) 非 scash 币种不要使用 SRBMiner（当前 extra_args 写死了 randomscash）
+        if coin != "scash" and impl == "srbminer":
+            return jsonify(
+                {
+                    "ok": False,
+                    "error": "当前版本仅支持 SCASH 使用 SRBMiner，其它币种请使用 cpuminer 或 XMRig。",
+                }
+            ), 400
+
+        # 2) SCASH + XMRig + pool.scash.pro 组合直接拒绝（矿池协议不兼容）
+        if (
+            coin == "scash"
+            and impl == "xmrig"
+            and "pool.scash.pro" in pool_url_raw
+        ):
+            return jsonify(
+                {
+                    "ok": False,
+                    "error": "SCASH 官方矿池 pool.scash.pro 暂不支持 XMRig 协议，请改用 cpuminer 或 SRBMiner。",
+                }
+            ), 400
+
         # 根据 impl 规范化矿池地址
-        if impl == "cpuminer":
+        if impl in ("cpuminer", "xmrig"):
             pool_url = _normalize_pool_for_cpuminer(pool_url_raw)
         else:
             # SRBMiner 用 host:port，extra_args 里单独处理
             pool_url = pool_url_raw
 
-        # 1) 更新配置
+        # 1) 更新配置（全局 coin）
+        _cfg["coin"] = coin
         _cfg["wallet"] = wallet
         mcfg = _cfg.get("miner", {}) or {}
         mcfg["impl"] = impl
@@ -408,19 +481,44 @@ def api_setup():
         mcfg["user"] = wallet
         mcfg["threads"] = threads
 
+        # bin_path 默认值
         if bin_path:
             mcfg["bin_path"] = bin_path
         else:
             if impl == "cpuminer":
                 mcfg["bin_path"] = "/usr/local/bin/minerd"
+            elif impl == "xmrig":
+                mcfg["bin_path"] = "/usr/local/bin/xmrig"
             else:
                 mcfg["bin_path"] = "/opt/SRBMiner-Multi/SRBMiner-MULTI"
 
+        # 根据 impl + coin 填充算法（algorithm / extra_args），只是给前端展示和 Miner 用
+        preset = COIN_PRESETS.get(coin, COIN_PRESETS["scash"])
+
         if impl == "cpuminer":
-            mcfg["algorithm"] = "randomx"
+            # cpuminer 这边目前只考虑 RandomX 系币，
+            # DERO 这种 AstroBWT 的我们直接提示用 XMRig。
+            algo = preset.get("algo_cpuminer") or "randomx"
+            if coin == "dero" and preset.get("algo_cpuminer") is None:
+                # 只是日志提示，不 hard block，方便你自己玩
+                logging.info("警告：你选择了 DERO + cpuminer，建议改用 XMRig (astrobwt)")
+                push_log("提示：DERO 建议使用 XMRig + astrobwt 算法，cpuminer 目前不推荐。")
+
+            mcfg["algorithm"] = algo
             mcfg["extra_args"] = ""
-        else:
-            # SRBMiner：使用 randomscash + enable-large-pages
+
+        elif impl == "xmrig":
+            # XMRig：根据币种切算法
+            # - SCASH / XMR / ZEPH → randomx（池子下发具体 variant）
+            # - WOW → rx/wow
+            # - DERO → astrobwt
+            algo = preset.get("algo_xmrig") or "randomx"
+
+            mcfg["algorithm"] = algo
+            mcfg["extra_args"] = ""
+
+        elif impl == "srbminer":
+            # SRBMiner：只用于 SCASH（randomscash）
             host_port = _strip_stratum_prefix(pool_url_raw)
             mcfg["algorithm"] = "randomscash"
             mcfg["extra_args"] = (
@@ -434,6 +532,7 @@ def api_setup():
 
         _cfg["miner"] = mcfg
 
+
         if "logging" not in _cfg:
             _cfg["logging"] = {
                 "file": "/data/scash-manager.log",
@@ -442,21 +541,33 @@ def api_setup():
 
         save_config(_cfg)
         logging.info("已更新配置并写入文件。")
-        push_log(f"已保存配置：impl={impl}, 线程={threads}。正在准备矿工程序...")
+        push_log(
+            f"已保存配置：coin={coin}, impl={impl}, 线程={threads}。正在准备矿工程序..."
+        )
 
         # 2) 下载 / 校验 miner
         try:
             if impl == "cpuminer":
                 ensure_cpuminer_binary(mcfg["bin_path"])
-            else:
-                # 返回 exe_path = /opt/SRBMiner-Multi/SRBMiner-MULTI
-                exe_path = ensure_srbminer(os.path.dirname(mcfg["bin_path"]) or "/opt/SRBMiner-Multi")
+
+            elif impl == "srbminer":
+                exe_path = ensure_srbminer(
+                    os.path.dirname(mcfg["bin_path"]) or "/opt/SRBMiner-Multi"
+                )
                 mcfg["bin_path"] = exe_path
                 _cfg["miner"] = mcfg
                 save_config(_cfg)
 
+            elif impl == "xmrig":
+                ensure_xmrig_binary(mcfg["bin_path"])
+
+            else:
+                raise RuntimeError(f"未知的 miner impl: {impl}")
+
+            # 最终二次兜底校验
             if not os.path.isfile(mcfg["bin_path"]):
                 raise FileNotFoundError(mcfg["bin_path"])
+
         except Exception as e:
             logging.error("配置后准备 miner 失败: %s", e)
             push_log(f"矿工程序不存在或下载失败: {e}")
@@ -475,7 +586,8 @@ def api_setup():
                     "error": (
                         "矿工程序不存在或下载失败："
                         "常见原因是无法连接 GitHub 或下载中途被重置，"
-                        "请检查网络，或者手动把 cpuminer / SRBMiner 放到容器内指定路径后重试。"
+                        "请检查网络，或者手动把 cpuminer / SRBMiner / XMRig "
+                        "放到容器内指定路径后重试。"
                         f"（详细错误：{e}）"
                     ),
                 }
@@ -495,6 +607,7 @@ def api_setup():
             _miner.start()
 
         return jsonify({"ok": True})
+
     except Exception as e:
         logging.exception("api_setup 处理失败")
         push_log(f"api_setup 处理失败: {e}")
@@ -559,6 +672,7 @@ def api_reset_config():
     _miner = None
 
     _cfg["wallet"] = ""
+    _cfg["coin"] = "scash"
     mcfg = _cfg.get("miner", {}) or {}
     mcfg["url"] = ""
     mcfg["user"] = ""
@@ -569,6 +683,7 @@ def api_reset_config():
     push_log("已清空钱包和矿池配置，现在可以重新运行向导。")
 
     return jsonify({"ok": True, "message": "配置已清空，现在可以重新运行向导。"})
+
 
 def main():
     logging.info("SCASH Manager Web 控制台已启动：http://0.0.0.0:8080")

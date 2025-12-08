@@ -5,6 +5,7 @@
   <meta charset="utf-8" />
   <title>SCASH Manager 控制台</title>
   <meta name="viewport" content="width=device-width, initial-scale=1" />
+
   <link rel="icon" type="image/x-icon" href="/favicon.ico">
   <link rel="icon" type="image/png" sizes="32x32" href="/icon-32x32.png">
   <link rel="icon" type="image/png" sizes="16x16" href="/icon-16x16.png">
@@ -20,58 +21,123 @@
 </head>
 <body>
   <div class="container">
+
+    <!-- 顶部 Logo / 标题 -->
     <h1>
       <span class="logo">
-        <img src="{{ url_for('static', filename='img/logo.svg') }}" alt="SCASH Manager" />
-
+        <img src="{{ url_for('static', filename='img/logo.svg') }}"
+             alt="SCASH Manager" />
       </span>
-      <span>SCASH Manager</span>
+      <span>CPU Miner Manager</span>
     </h1>
+
     <div class="subtitle">
-      轻量级 SCASH 挖矿管家 · Web 控制台 + Watchdog · Docker 开箱即用
+      多币种 CPU 挖矿管家 · SCASH / XMR / Zephyr / Wownero / Dero · Web 控制台 + Watchdog
     </div>
+
     <div class="top-actions">
       <button id="btn-reset" class="btn-ghost small">
         重新运行向导
       </button>
     </div>
 
-
-    <!-- 首次配置向导 -->
-    <div id="setup-section" class="section" style="display:none;">
+    <!-- ================== 首次配置向导（默认显示） ================== -->
+    <div id="setup-section" class="section">
       <h2>首次配置向导</h2>
       <p class="hint">
-        第一次使用，请填写你的 SCASH 钱包与挖矿参数。保存后系统会自动写入配置并启动 Miner。
+        第一次使用，请选择币种并填写钱包/矿池/线程数等参数。保存后系统会自动写入配置并启动 Miner。
       </p>
 
-      <label>矿工类型</label>
-      <select id="setup-impl">
-        <option value="cpuminer">cpuminer-scash v3.0.9（推荐，简单稳定）</option>
-        <option value="srbminer">SRBMiner-MULTI v3.0.5（高级，更多参数）</option>
+      <!-- 币种选择 -->
+      <label for="setup-coin">币种</label>
+      <select id="setup-coin">
+        <option value="scash">SCASH（RandomX，推荐 cpuminer / SRBMiner）</option>
+        <option value="xmr">Monero / XMR（RandomX，推荐 XMRig）</option>
+        <option value="zeph">Zephyr / ZEPH（RandomX，推荐 XMRig）</option>
+        <option value="wow">Wownero / WOW（RandomX，推荐 XMRig）</option>
+        <option value="dero">Dero / DERO（AstroBWT，推荐 XMRig）</option>
+        <option value="custom_rx">自定义 RandomX 币种（手动输入矿池与钱包）</option>
       </select>
 
-      <label>SCASH 钱包地址</label>
-      <input id="setup-wallet" placeholder="scash1q..." />
+      <!-- 矿工类型 -->
+      <label for="setup-impl">矿工类型</label>
+      <select id="setup-impl">
+        <!-- SCASH 推荐 cpuminer / SRBMiner；其他币种一般使用 XMRig -->
+        <option value="cpuminer" data-coins="scash">cpuminer-scash v3.0.9（SCASH 推荐，简单稳定）</option>
+        <option value="srbminer" data-coins="scash">SRBMiner-MULTI v3.0.5（SCASH 高级，更多参数）</option>
+        <option value="xmrig" data-coins="xmr,zeph,wow,dero,custom_rx">
+          XMRig（Monero / RandomX 系列通用矿工）
+        </option>
+      </select>
+      <p class="hint small">
+        提示：当前 SCASH 矿池 <code class="inline-code">pool.scash.pro:8888</code> 暂不支持 XMRig 协议，请用 cpuminer 或 SRBMiner。
+      </p>
 
-      <div class="grid">
+      <!-- 钱包地址 -->
+      <label for="setup-wallet">钱包地址</label>
+      <input id="setup-wallet" placeholder="根据币种填写对应钱包，如 scash1q... 或 4...（XMR）" />
+
+      <!-- 向导内部：纵向排布，避免错位 -->
+      <div class="setup-grid">
+        <!-- 矿池 -->
+        <!-- 矿池 -->
+      <div>
+        <label for="setup-pool">矿池</label>
+        <select id="setup-pool">
+          <!-- SCASH 默认池 -->
+          <option value="pool.scash.pro:8888" data-coin="scash">
+            SCASH：pool.scash.pro:8888（官方池）
+          </option>
+  
+          <!-- XMR 默认池：SupportXMR -->
+          <option value="pool.supportxmr.com:3333" data-coin="xmr">
+          XMR：pool.supportxmr.com:3333（SupportXMR）
+          </option>
+      
+          <!-- Zephyr 默认池：Kryptex -->
+          <option value="zeph.kryptex.network:7030" data-coin="zeph">
+            Zephyr：zeph.kryptex.network:7030（Kryptex）
+          </option>
+      
+          <!-- Wownero 默认池：HeroMiners -->
+          <option value="wownero.herominers.com:10661" data-coin="wow">
+            Wownero：wownero.herominers.com:10661（HeroMiners）
+          </option>
+      
+          <!-- DERO 默认池：HeroMiners AstroBWT -->
+          <option value="us.dero.herominers.com:10120" data-coin="dero">
+            DERO：us.dero.herominers.com:10120（HeroMiners AstroBWT）
+          </option>
+    
+        <!-- 自定义 -->
+        <option value="custom" data-coin="custom_rx">
+          自定义矿池...
+        </option>
+      </select>
+
+      <input
+          id="setup-pool-custom"
+          placeholder="自定义矿池，例如 pool.xxx.com:端口"
+          class="mt6 hidden"
+        />
+      </div>
+
+
+        <!-- 线程数 -->
         <div>
-          <label>矿池</label>
-          <select id="setup-pool">
-            <option value="pool.scash.pro:8888">pool.scash.pro:8888</option>
-            <option value="custom">自定义矿池...</option>
-          </select>
-          <input id="setup-pool-custom"
-                 placeholder="自定义矿池，例如 pool.scash.pro:8888 或 8.217.27.122:7019"
-                 class="mt6 hidden" />
-        </div>
-        <div>
-          <label>线程数（留空则自动使用 CPU 核数-1）</label>
+          <label for="setup-threads">线程数（留空则自动使用 CPU 核数 - 1）</label>
           <input id="setup-threads" type="number" min="1" />
         </div>
       </div>
 
-      <label class="mt10">矿工可执行文件路径（容器内，可留空使用默认）</label>
-      <input id="setup-bin" placeholder="/usr/local/bin/minerd 或 /opt/SRBMiner-Multi/SRBMiner-MULTI" />
+      <!-- 可执行文件路径 -->
+      <label for="setup-bin" class="mt10">
+        矿工可执行文件路径（容器内，可留空使用默认）
+      </label>
+      <input
+        id="setup-bin"
+        placeholder="/usr/local/bin/minerd 或 /opt/SRBMiner-Multi/SRBMiner-MULTI 或 /usr/local/bin/xmrig"
+      />
 
       <div class="controls">
         <button id="btn-setup-save" class="btn-primary">保存配置并启动 Miner</button>
@@ -79,8 +145,8 @@
       </div>
     </div>
 
-    <!-- 控制台 -->
-    <div id="dashboard-section" class="section" style="display:none;">
+    <!-- ================== 控制台（默认隐藏，由 JS 决定显示） ================== -->
+    <div id="dashboard-section" class="section hidden">
       <div class="header-row">
         <div>
           <h2>运行状态</h2>
@@ -88,6 +154,7 @@
             <span id="status-text">状态未知</span>
           </div>
           <div class="sub-info">
+            当前币种：<span id="coin-text">-</span><br/>
             当前矿工：<span id="impl-text">-</span>
           </div>
         </div>
@@ -98,7 +165,8 @@
         </div>
       </div>
 
-      <div class="grid mt12">
+      <!-- Miner / Watchdog 信息，两列布局 -->
+      <div class="grid grid-2 mt12">
         <div class="section inner">
           <h2 class="small">Miner</h2>
           <div class="sub-info">
@@ -140,7 +208,7 @@
         <h2 class="small">打赏作者（SCASH）</h2>
         <div class="sub-info">
           如果这个面板对你有帮助，可以考虑打赏一点 SCASH 支持开发：<br/>
-          <code class="addr">scash1qdvdy4ea0v6dpw6knxgffsr2h3tg5f0f55z589</code>
+          <code class="addr">scash1qdvdy4ea0v6dpw6kxnxgffsr2h3tsgf0f55z589</code>
         </div>
       </div>
 
@@ -158,12 +226,12 @@
     </div>
 
     <div class="footer">
-      SCASH Manager · Docker Edition · 助力scash发展
+      CPU Miner Manager · Docker Edition · 支持 SCASH / XMR / Zephyr / Wownero / Dero
     </div>
-    
+
   </div>
 
-  <!-- 主前端逻辑 -->
+  <!-- 主前端逻辑（原来的 app.js 不变，只需要多读取 setup-coin 即可） -->
   <script src="{{ url_for('static', filename='js/app.js') }}"></script>
 </body>
 </html>

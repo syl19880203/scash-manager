@@ -19,16 +19,19 @@
 
 body {
   font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-  background: radial-gradient(circle at top, rgba(56,189,248,0.15), transparent 55%),
-              radial-gradient(circle at bottom, rgba(34,197,94,0.12), transparent 60%),
-              var(--bg);
+  background:
+    radial-gradient(circle at top, rgba(56,189,248,0.15), transparent 55%),
+    radial-gradient(circle at bottom, rgba(34,197,94,0.12), transparent 60%),
+    var(--bg);
   color: var(--text-main);
   margin: 0;
   padding: 0;
 }
 
+/* 容器：桌面端中等宽度，居中 */
 .container {
-  max-width: 880px;
+  width: 100%;
+  max-width: 1120px;
   margin: 32px auto;
   padding: 24px;
   background: rgba(2,6,23,0.95);
@@ -43,21 +46,28 @@ h1 {
   font-size: 24px;
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 10px;
 }
 
 h1 span.logo {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 30px;
-  height: 30px;
+  width: 28px;
+  height: 28px;
   border-radius: 999px;
   background: radial-gradient(circle at 30% 20%, var(--accent2), #6366f1);
   color: #0f172a;
   font-weight: 900;
   font-size: 16px;
   box-shadow: 0 0 20px rgba(56,189,248,0.6);
+  flex-shrink: 0;
+}
+
+h1 span.logo img {
+  width: 18px;
+  height: 18px;
+  display: block;
 }
 
 .subtitle {
@@ -71,6 +81,7 @@ h1 span.logo {
   text-align: right;
 }
 
+/* 卡片区域 */
 .section {
   margin-top: 18px;
   padding: 14px 16px;
@@ -101,6 +112,7 @@ h1 span.logo {
   align-items: center;
 }
 
+/* 表单元素 */
 label {
   display: block;
   font-size: 13px;
@@ -127,12 +139,26 @@ select:focus {
   box-shadow: 0 0 0 1px rgba(34,197,94,0.4);
 }
 
+/* 通用栅格：默认一列 */
 .grid {
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns: 1fr;
   gap: 12px;
 }
 
+/* 需要两列时，加 grid-2 */
+.grid.grid-2 {
+  grid-template-columns: 1fr 1fr;
+}
+
+/* 向导内部栅格：当前纵向排布 */
+.setup-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 12px;
+}
+
+/* 控件区域 */
 .controls {
   margin-top: 16px;
   display: flex;
@@ -141,6 +167,7 @@ select:focus {
   flex-wrap: wrap;
 }
 
+/* 按钮 */
 button {
   border: none;
   border-radius: 999px;
@@ -178,6 +205,7 @@ button:hover {
   padding: 4px 10px;
 }
 
+/* 日志区域 */
 .log {
   margin-top: 12px;
   padding: 8px;
@@ -192,6 +220,7 @@ button:hover {
   color: var(--text-sub);
 }
 
+/* 页脚 */
 .footer {
   margin-top: 14px;
   font-size: 11px;
@@ -199,6 +228,7 @@ button:hover {
   text-align: right;
 }
 
+/* 提示信息 */
 .msg {
   font-size: 12px;
   color: var(--text-sub);
@@ -208,6 +238,17 @@ button:hover {
   color: #fecaca;
 }
 
+/* 内联代码小块 */
+.inline-code {
+  display: inline-block;
+  padding: 2px 4px;
+  border-radius: 4px;
+  background: #020617;
+  border: 1px solid var(--border-soft);
+  font-size: 11px;
+}
+
+/* 钱包地址样式 */
 code.addr {
   display: inline-block;
   margin-top: 4px;
@@ -241,7 +282,7 @@ code.addr {
   border: 1px solid rgba(96, 165, 250, 0.4);
 }
 
-
+/* 状态徽章 */
 .badge {
   display: inline-flex;
   align-items: center;
@@ -260,6 +301,7 @@ code.addr {
   border-color: rgba(248,113,113,0.6);
 }
 
+/* 顶部状态行 */
 .header-row {
   display: flex;
   justify-content: space-between;
@@ -277,12 +319,18 @@ code.addr {
   text-align: right;
 }
 
+/* 小提示文本 */
 .hint {
   font-size: 13px;
   color: var(--text-sub);
   margin-top: 2px;
 }
 
+.hint.small {
+  font-size: 12px;
+}
+
+/* 工具类间距 */
 .mt6 {
   margin-top: 6px;
 }
@@ -295,17 +343,20 @@ code.addr {
   margin-top: 12px;
 }
 
+/* 通用隐藏类 */
 .hidden {
   display: none;
 }
 
+/* 移动端适配 */
 @media (max-width: 680px) {
   .container {
     margin: 10px;
     padding: 16px;
   }
 
-  .grid {
+  /* 两列布局在小屏下改为一列 */
+  .grid.grid-2 {
     grid-template-columns: 1fr;
   }
 

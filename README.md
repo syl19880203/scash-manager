@@ -6,7 +6,7 @@
 <img width="2880" height="1462" alt="image" src="https://github.com/user-attachments/assets/95e0e286-783b-4ebb-aeae-681fff6000c4" />
 
 
-> 当前支持：`cpuminer-scash` 与 `SRBMiner-MULTI`（RandomSCASH / RandomX-SCASH）。
+> 当前支持：`cpuminer-scash` 与 `SRBMiner-MULTI`（RandomSCASH / RandomX-SCASH），XMRig。
 找我可以在https://t.me/+vsa1TnPuAaphM2U1
 ---
 

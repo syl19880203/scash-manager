@@ -7,7 +7,7 @@
 
 
 > 当前支持：`cpuminer-scash` 与 `SRBMiner-MULTI`（RandomSCASH / RandomX-SCASH），XMRig。
-找我可以在https://t.me/+vsa1TnPuAaphM2U1
+> 找我就在电报群：https://t.me/+VLnDiWgrAahmYjA1
 ---
 
 ## 功能特性
